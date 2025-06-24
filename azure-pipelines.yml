@@ -21,9 +21,10 @@ variables:
 pool:
   name: 'VotingApp-Agent'    #the name of my newly created selfhosted agent
 
-stages:                               
-- stage: Build                        
-  displayName: Build the Voting App
+
+stages:
+- stage: Build
+  displayName: Build the voting App
   jobs:
   - job: Build
     displayName: Build
@@ -31,19 +32,34 @@ stages:
     steps:
     - task: Docker@2
       inputs:
-        containerRegistry: 'VotingAppRegistrylatest'
-        repository: 'votingapp/vote'          
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: 'votingapp/vote'
         command: 'build'
         Dockerfile: $(dockerfilePath)
 
-- stage: Push                           
-  displayName: Push the Voting App        
+
+- stage: Push
+  displayName: Push the voting App
   jobs:
   - job: Push
-    displayName: Pushing the voting App
+    displayName: Push
+
     steps:
     - task: Docker@2
       inputs:
-        containerRegistry: 'VotingAppRegistrylatest'
+        containerRegistry: $(dockerRegistryServiceConnection)
         repository: 'votingapp/vote'
-        command: 'push' 
+        command: 'push'
+##################################
+######### Add the script below to the vote-service pipeline 
+
+- stage: Update_bash_script
+  displayName: update_Bash_script
+  jobs:
+  - job: Updating_repo_with_bash
+    displayName: updating_repo_using_bash_script
+    steps:
+    - task: ShellScript@2
+      inputs:
+        scriptPath: 'vote/updatek8smanifests.sh'
+        args: 'vote $(imageRepository) $(tag)'
