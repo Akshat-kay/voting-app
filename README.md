@@ -1,7 +1,8 @@
 # 🗳️ 3-Tier Microservice Voting App with ArgoCD & Azure DevOps  
 **Production-grade deployment leveraging GitOps and CI/CD best practices**  
 
-![Architecture Diagram](![image](![68747470733a2f2f6d69726f2e6d656469756d2e636f6d2f76322f726573697a653a6669743a3730302f312a314e5947784c6175785642494f4d5a4c716e4e7755412e706e67](https://github.com/user-attachments/assets/0684846e-dd48-4c26-b76e-18e58c778a43)
+![Architecture Diagram]
+C:\Downloads\68747470733a2f2f6d69726f2e6d656469756d2e636f6d2f76322f726573697a653a6669743a3730302f312a314e5947784c6175785642494f4d5a4c716e4e7755412e706e67.png
 )
 ) *(Example architecture diagram - replace with your actual diagram)*  
 
