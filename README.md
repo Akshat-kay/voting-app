@@ -1,65 +1,134 @@
-# Example Voting App
+# 🗳️ 3-Tier Microservice Voting App with ArgoCD & Azure DevOps  
+**Production-grade deployment leveraging GitOps and CI/CD best practices**  
 
-A simple distributed application running across multiple Docker containers.
+![Architecture Diagram](https://i.imgur.com/JK7D3l8.png) *(Example architecture diagram - replace with your actual diagram)*  
 
-## Getting started
+---
 
-Download [Docker Desktop](https://www.docker.com/products/docker-desktop) for Mac or Windows. [Docker Compose](https://docs.docker.com/compose) will be automatically installed. On Linux, make sure you have the latest version of [Compose](https://docs.docker.com/compose/install/).
+## 📋 Table of Contents  
+- [🌐 Architecture Overview](#-architecture-overview)
+- [⚙️ Prerequisites](#️-prerequisites)
+- [🐳 Local Deployment](#-local-deployment-with-docker-compose)
+- [🔄 CI/CD Pipeline](#-cicd-pipeline-setup)
+- [☸️ Kubernetes Deployment](#️-kubernetes-deployment)
+- [🔍 Monitoring](#-monitoring--troubleshooting)
+- [📸 Screenshots](#-screenshots)
+- [❓ FAQs](#-faqs)
 
-This solution uses Python, Node.js, .NET, with Redis for messaging and Postgres for storage.
+---
 
-Run in this directory to build and run the app:
+## 🌐 Architecture Overview
 
-```shell
-docker compose up
-```
+```mermaid
+graph TD
+    A[User] -->|Votes| B(vote:8080)
+    B -->|Stores| C[(Redis:6379)]
+    C -->|Processed by| D(worker)
+    D -->|Persists to| E[(Postgres:5432)]
+    E -->|Read by| F(result:5000)
+    A -->|Views Results| F
+Component Matrix:
 
-The `vote` app will be running at [http://localhost:8080](http://localhost:8080), and the `results` will be at [http://localhost:8081](http://localhost:8081).
+Service	Tech Stack	Port	Purpose
+vote	Python/Flask	8080	User voting interface
+result	Node.js/Express	5000	Real-time results dashboard
+worker	.NET Core	-	Vote processor (Redis→Postgres)
+redis	Redis	6379	Temporary vote storage
+postgres	PostgreSQL	5432	Persistent vote storage
+Infrastructure Flow:
 
-Alternately, if you want to run it on a [Docker Swarm](https://docs.docker.com/engine/swarm/), first make sure you have a swarm. If you don't, run:
+CI/CD: Azure DevOps → ACR
 
-```shell
-docker swarm init
-```
+GitOps: ArgoCD syncs AKS with repo changes
 
-Once you have your swarm, in this directory run:
+Monitoring: Prometheus + Grafana (optional)
 
-```shell
-docker stack deploy --compose-file docker-stack.yml vote
-```
+⚙️ Prerequisites
+🛠️ Tools
+bash
+# Required Tools
+az --version        # Azure CLI 2.30+
+kubectl version     # Kubernetes 1.20+
+docker --version    # Docker 20.10+
+argocd version      # ArgoCD 2.3+
+☁️ Azure Resources
+Resource	Recommended Spec
+AKS Cluster	2 nodes, Standard_D2s_v3
+ACR	Standard Tier
+Service Principal	Contributor permissions
+🐳 Local Deployment
+bash
+# 1. Clone repository
+git clone https://github.com/Akshatkashyap786/voting_app.git
+cd voting_app
 
-## Run the app in Kubernetes
+# 2. Start all services
+docker-compose up -d
 
-The folder k8s-specifications contains the YAML specifications of the Voting App's services.
+# 3. Verify services
+docker-compose ps
+Access Interfaces:
 
-Run the following command to create the deployments and services. Note it will create these resources in your current namespace (`default` if you haven't changed it.)
+Voting UI: http://localhost:8080
 
-```shell
-kubectl create -f k8s-specifications/
-```
+Results: http://localhost:5000
 
-The `vote` web app is then available on port 31000 on each host of the cluster, the `result` web app is available on port 31001.
+🔄 CI/CD Pipeline Setup
+Azure DevOps Configuration
+yaml
+# Example pipeline snippet (vote-service.yml)
+trigger:
+  branches:
+    include: [ main ]
+  paths:
+    include: [ vote/* ]
 
-To remove them, run:
+variables:
+  dockerRegistry: 'myacr.azurecr.io'
+  tag: $(Build.BuildId)
 
-```shell
-kubectl delete -f k8s-specifications/
-```
+steps:
+- task: Docker@2
+  inputs:
+    command: buildAndPush
+    repository: vote
+    dockerfile: vote/Dockerfile
+    tags: $(tag)
+Pipeline Stages:
 
-## Architecture
+Build: Containerize each microservice
 
-![Architecture diagram](architecture.excalidraw.png)
+Push: Store in ACR with versioned tags
 
-* A front-end web app in [Python](/vote) which lets you vote between two options
-* A [Redis](https://hub.docker.com/_/redis/) which collects new votes
-* A [.NET](/worker/) worker which consumes votes and stores them in…
-* A [Postgres](https://hub.docker.com/_/postgres/) database backed by a Docker volume
-* A [Node.js](/result) web app which shows the results of the voting in real time
+Deploy: ArgoCD auto-syncs (GitOps)
 
-## Notes
+☸️ Kubernetes Deployment
+AKS Cluster Setup
+bash
+az aks create \
+  --name voting-cluster \
+  --node-count 2 \
+  --enable-cluster-autoscaler \
+  --min-count 1 \
+  --max-count 3 \
+  --attach-acr myacr
+ArgoCD Installation
+bash
+# 1. Install ArgoCD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-The voting application only accepts one vote per client browser. It does not register additional votes if a vote has already been submitted from a client.
+# 2. Access UI (Port-forward)
+kubectl port-forward svc/argocd-server -n argocd 8081:443
+Default Credentials:
 
-This isn't an example of a properly architected perfectly designed distributed app... it's just a simple
-example of the various types of pieces and languages you might see (queues, persistent data, etc), and how to
-deal with them in Docker at a basic level.
+Username: admin
+
+Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+🔍 Monitoring & Troubleshooting
+Common Issues
+Symptom	Debug Command	Likely Fix
+Pod CrashLoop	kubectl logs -f <pod> -c <container>	Check ENV variables
+ArgoCD Out-of-Sync	argocd app diff voting-app	Validate manifests in repo
+Pipeline Timeout	journalctl -u vsts-agent	Scale up agent VM
