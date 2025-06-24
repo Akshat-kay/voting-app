@@ -34,7 +34,7 @@ stages:
         containerRegistry: 'VotingAppRegistrylatest'
         repository: 'votingapp/vote'          
         command: 'build'
-        Dockerfile: 'vote/Dockerfile'
+        Dockerfile: $(dockerfilePath)
 
 - stage: Push                           
   displayName: Push the Voting App        
