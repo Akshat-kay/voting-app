@@ -1,137 +1,90 @@
-# 🗳️ 3-Tier Microservice Voting App with ArgoCD & Azure DevOps  
-**Production-grade deployment leveraging GitOps and CI/CD best practices**  
 
-![Architecture Diagram]
-C:\Downloads\68747470733a2f2f6d69726f2e6d656469756d2e636f6d2f76322f726573697a653a6669743a3730302f312a314e5947784c6175785642494f4d5a4c716e4e7755412e706e67.png
-)
-) *(Example architecture diagram - replace with your actual diagram)*  
-
----
-
-## 📋 Table of Contents  
-- [🌐 Architecture Overview](#-architecture-overview)
-- [⚙️ Prerequisites](#️-prerequisites)
-- [🐳 Local Deployment](#-local-deployment-with-docker-compose)
-- [🔄 CI/CD Pipeline](#-cicd-pipeline-setup)
-- [☸️ Kubernetes Deployment](#️-kubernetes-deployment)
-- [🔍 Monitoring](#-monitoring--troubleshooting)
-- [📸 Screenshots](#-screenshots)
-- [❓ FAQs](#-faqs)
+- **Frontend (vote)**: Flask app for casting votes.
+- **Backend (vote processor)**: Node.js microservice.
+- **Redis**: Temporary vote queue.
+- **Worker**: Python service to move votes from Redis to PostgreSQL.
+- **Results**: Flask app displaying the results.
+- **PostgreSQL**: Final data store for votes.
 
 ---
 
-## 🌐 Architecture Overview
+## 📦 Project Stages
 
-```mermaid
-graph TD
-    A[User] -->|Votes| B(vote:8080)
-    B -->|Stores| C[(Redis:6379)]
-    C -->|Processed by| D(worker)
-    D -->|Persists to| E[(Postgres:5432)]
-    E -->|Read by| F(result:5000)
-    A -->|Views Results| F
-Component Matrix:
+---
 
-Service	Tech Stack	Port	Purpose
-vote	Python/Flask	8080	User voting interface
-result	Node.js/Express	5000	Real-time results dashboard
-worker	.NET Core	-	Vote processor (Redis→Postgres)
-redis	Redis	6379	Temporary vote storage
-postgres	PostgreSQL	5432	Persistent vote storage
-Infrastructure Flow:
+### 🛠️ Stage 1: Continuous Integration (CI)
 
-CI/CD: Azure DevOps → ACR
+#### 1. Clone & Run Locally
+- Created an Azure Ubuntu VM
+- Installed Docker and Docker Compose
+- Cloned repo and ran `docker-compose up -d`
 
-GitOps: ArgoCD syncs AKS with repo changes
+#### 2. Create Azure DevOps Project
+- Imported GitHub repo into Azure DevOps Repos
 
-Monitoring: Prometheus + Grafana (optional)
+#### 3. Create Azure Container Registry
+- Created ACR instance for storing container images
 
-⚙️ Prerequisites
-🛠️ Tools
-bash
-# Required Tools
-az --version        # Azure CLI 2.30+
-kubectl version     # Kubernetes 1.20+
-docker --version    # Docker 20.10+
-argocd version      # ArgoCD 2.3+
-☁️ Azure Resources
-Resource	Recommended Spec
-AKS Cluster	2 nodes, Standard_D2s_v3
-ACR	Standard Tier
-Service Principal	Contributor permissions
-🐳 Local Deployment
-bash
-# 1. Clone repository
-git clone https://github.com/Akshatkashyap786/voting_app.git
-cd voting_app
+#### 4. Set Up Self-Hosted Agent
+- Configured Azure DevOps to use the same Ubuntu VM
+- Installed agent using `config.sh` and `run.sh`
 
-# 2. Start all services
+#### 5. Create CI Pipelines
+- Wrote individual pipeline scripts for:
+  - `vote`
+  - `worker`
+  - `result`
+- Used separate build and push stages to ACR
+
+---
+
+### 🚢 Stage 2: Continuous Delivery (CD)
+
+#### 1. Create Azure Kubernetes Service (AKS)
+- Configured AKS with autoscaling node pool
+
+#### 2. Install CLI Tools
+- Installed Azure CLI and `kubectl` on a new VM
+- Connected to AKS using `az aks get-credentials`
+
+#### 3. Install ArgoCD
+- Installed ArgoCD in AKS namespace using bash script
+- Exposed ArgoCD via NodePort for public access
+
+#### 4. Configure ArgoCD
+- Connected ArgoCD to Azure Repo via HTTPS + Personal Access Token (PAT)
+- Synced Kubernetes manifests from `k8s-specifications/`
+- Enabled auto-sync and self-healing deployments
+
+---
+
+## 📷 Screenshots
+
+> Upload these images in your GitHub repo or LinkedIn post
+
+- Docker containers running locally
+- Azure DevOps pipeline success
+- Images pushed to Azure Container Registry
+- Kubernetes pods running via `kubectl`
+- ArgoCD UI showing sync status
+- ArgoCD application deployment success
+
+---
+
+## 🧪 How to Run Locally
+
+```bash
+# Create an Azure Ubuntu VM and SSH into it
+ssh -i <key.pem> azureuser@<public-ip>
+
+# Install Docker and Docker Compose
+sudo apt update && sudo apt install docker.io docker-compose -y
+
+# Clone the repo
+git clone https://github.com/yourusername/voting-app-devops.git
+cd voting-app-devops
+
+# Spin up the services
 docker-compose up -d
 
-# 3. Verify services
-docker-compose ps
-Access Interfaces:
-
-Voting UI: http://localhost:8080
-
-Results: http://localhost:5000
-
-🔄 CI/CD Pipeline Setup
-Azure DevOps Configuration
-yaml
-# Example pipeline snippet (vote-service.yml)
-trigger:
-  branches:
-    include: [ main ]
-  paths:
-    include: [ vote/* ]
-
-variables:
-  dockerRegistry: 'myacr.azurecr.io'
-  tag: $(Build.BuildId)
-
-steps:
-- task: Docker@2
-  inputs:
-    command: buildAndPush
-    repository: vote
-    dockerfile: vote/Dockerfile
-    tags: $(tag)
-Pipeline Stages:
-
-Build: Containerize each microservice
-
-Push: Store in ACR with versioned tags
-
-Deploy: ArgoCD auto-syncs (GitOps)
-
-☸️ Kubernetes Deployment
-AKS Cluster Setup
-bash
-az aks create \
-  --name voting-cluster \
-  --node-count 2 \
-  --enable-cluster-autoscaler \
-  --min-count 1 \
-  --max-count 3 \
-  --attach-acr myacr
-ArgoCD Installation
-bash
-# 1. Install ArgoCD
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# 2. Access UI (Port-forward)
-kubectl port-forward svc/argocd-server -n argocd 8081:443
-Default Credentials:
-
-Username: admin
-
-Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-
-🔍 Monitoring & Troubleshooting
-Common Issues
-Symptom	Debug Command	Likely Fix
-Pod CrashLoop	kubectl logs -f <pod> -c <container>	Check ENV variables
-ArgoCD Out-of-Sync	argocd app diff voting-app	Validate manifests in repo
-Pipeline Timeout	journalctl -u vsts-agent	Scale up agent VM
+# Visit http://<public-ip>:8080 in browser
