@@ -1,124 +1,86 @@
 # 🚀 Deploy a 3-Tier Microservice Voting App using ArgoCD and Azure DevOps Pipeline
 
-This project demonstrates a complete DevOps CI/CD pipeline for a microservices-based Voting App using Azure DevOps, Docker, Kubernetes (AKS), Azure Container Registry (ACR), and ArgoCD.
+This project demonstrates a complete CI/CD pipeline for a Dockerized microservices-based voting application using Azure DevOps, AKS (Azure Kubernetes Service), Azure Container Registry (ACR), and GitOps with ArgoCD.
 
 ---
 
 ## 🧾 Overview
 
-The application is composed of 6 microservices:
-- **vote (Frontend)** – Python/Flask app where users cast votes
-- **vote processor** – Node.js backend that receives votes
-- **Redis** – Temporarily stores votes
-- **worker** – Python service that processes votes from Redis to PostgreSQL
-- **result** – Flask app that displays voting results
-- **PostgreSQL** – Stores the final vote count
+The Voting App consists of six microservices:
 
-All components are containerized with Docker and deployed using Kubernetes. CI/CD is managed via Azure DevOps and ArgoCD with GitOps principles.
+- **vote (Frontend)** – Python/Flask web app to cast votes
+- **vote processor** – Node.js backend service
+- **Redis** – Stores votes temporarily
+- **worker** – Python service that moves votes from Redis to PostgreSQL
+- **result** – Flask web app displaying vote results
+- **PostgreSQL** – Final vote store
 
 ---
 
-## 🛠️ Technologies Used
+## 🛠️ Tech Stack
 
-- Azure DevOps (CI/CD Pipelines)
-- Docker & Docker Compose
-- Azure Container Registry (ACR)
+- Azure DevOps (CI/CD)
 - Azure Kubernetes Service (AKS)
+- Azure Container Registry (ACR)
+- Docker & Docker Compose
 - ArgoCD (GitOps)
 - Kubernetes
-- Python, Node.js
-- Redis & PostgreSQL
+- Redis, PostgreSQL
+- Python (Flask), Node.js
 
 ---
 
-## 📦 Project Workflow
+## 🧱 Architecture
+
+![Architecture](https://raw.githubusercontent.com/Akshat-kay/voting-app/main/architecture.excalidraw.png)
+
+---
+
+## 📦 Project Stages
 
 ### 🔹 Stage 1: Continuous Integration (CI)
-1. **Local Deployment**:
-   - Deployed the app on an Azure Ubuntu VM using Docker Compose.
 
-2. **Azure DevOps Setup**:
-   - Created project and imported GitHub repo.
-   - Built CI pipelines for `vote`, `worker`, and `result` services.
+1. **Clone and run app locally using Docker Compose**
+2. **Create Azure DevOps project and import Git repo**
+3. **Create Azure Container Registry (ACR)**
+4. **Configure self-hosted agent on Azure VM**
+5. **Write Azure DevOps pipelines for each microservice (`vote`, `result`, `worker`)**
+   - Build and push Docker images to ACR
 
-3. **ACR Integration**:
-   - Docker images are built and pushed to Azure Container Registry.
-
-4. **Self-Hosted Agent**:
-   - Azure DevOps pipelines are run on a custom VM-based agent.
-
-<p align="center">
-  <img src="screenshots/2stage_pipe.png" alt="2 Stage CI Pipeline" width="700"/>
-  <br>
-  <em>2-stage CI pipeline for image build and push</em>
-</p>
-
-<p align="center">
-  <img src="screenshots/acr-images.png" alt="ACR Images" width="700"/>
-  <br>
-  <em>Images stored in Azure Container Registry</em>
-</p>
+![2-Stage Pipeline](https://raw.githubusercontent.com/Akshat-kay/voting-app/main/2stage_pipe.png)
+![Azure DevOps Pipeline](https://raw.githubusercontent.com/Akshat-kay/voting-app/main/axure_pipe.png)
+![ACR Images](https://raw.githubusercontent.com/Akshat-kay/voting-app/main/acr-images.png)
 
 ---
 
 ### 🔹 Stage 2: Continuous Delivery (CD)
-1. **AKS Cluster**:
-   - Created and configured an Azure Kubernetes Service cluster.
 
-2. **ArgoCD Installation**:
-   - Deployed ArgoCD into AKS.
-   - Exposed ArgoCD using NodePort and logged in using decoded credentials.
+1. **Create Azure Kubernetes Service (AKS) cluster**
+2. **Install Azure CLI and `kubectl`**
+3. **Install ArgoCD in the AKS cluster**
+4. **Expose ArgoCD via NodePort and access UI**
+5. **Connect ArgoCD to Azure DevOps Git repo**
+6. **Deploy microservices using `k8s-specifications/` manifests**
+7. **Enable automatic sync for GitOps delivery**
 
-3. **GitOps Deployment**:
-   - ArgoCD continuously syncs Kubernetes manifests from Azure Repos.
-
-<p align="center">
-  <img src="screenshots/argocd-ui.png" alt="ArgoCD UI" width="700"/>
-  <br>
-  <em>ArgoCD dashboard view</em>
-</p>
-
-<p align="center">
-  <img src="screenshots/argocdui2.png" alt="ArgoCD Applications" width="700"/>
-  <br>
-  <em>Application successfully deployed using ArgoCD</em>
-</p>
-
-<p align="center">
-  <img src="screenshots/argocdpods.png" alt="Kubernetes Pods" width="700"/>
-  <br>
-  <em>All microservices running as pods on AKS</em>
-</p>
-
-<p align="center">
-  <img src="screenshots/argocdXgithubrepo.png" alt="GitHub Repo Connected" width="700"/>
-  <br>
-  <em>ArgoCD connected to GitHub repo</em>
-</p>
-
----
-
-## 🗺️ Architecture Diagram
-
-<p align="center">
-  <img src="screenshots/architecture.excalidraw.png" alt="Architecture Diagram" width="800"/>
-  <br>
-  <em>Full CI/CD + GitOps Architecture</em>
-</p>
+![ArgoCD UI](https://raw.githubusercontent.com/Akshat-kay/voting-app/main/argocd-ui.png)
+![ArgoCD Apps View](https://raw.githubusercontent.com/Akshat-kay/voting-app/main/argocdui2.png)
+![ArgoCD GitHub Integration](https://raw.githubusercontent.com/Akshat-kay/voting-app/main/argocdXgithubrepo.png)
+![Kubernetes Pods](https://raw.githubusercontent.com/Akshat-kay/voting-app/main/argocdpods.png)
 
 ---
 
 ## 🧪 How to Run Locally
 
 ```bash
-# SSH into your Azure VM
+# SSH into Azure VM
 ssh -i <your-key.pem> azureuser@<vm-public-ip>
 
 # Install Docker & Docker Compose
 sudo apt update
 sudo apt install docker.io docker-compose -y
 
-# Clone the repo and run the app
-git clone https://github.com/yourusername/voting-app-devops.git
-cd voting-app-devops
+# Clone and start app
+git clone https://github.com/Akshat-kay/voting-app.git
+cd voting-app
 docker-compose up -d
